@@ -3,9 +3,6 @@
   Generates a visualization of the Collatz Conjecture
   https://en.wikipedia.org/wiki/Collatz_conjecture
 
-  Translating and Rotating inspired by Daniel Shiffman (The Coding Train)
-  https://thecodingtrain.com/CodingInTheCabana/002-collatz-conjecture.html
-
   Author: Michael J. Neumann
   https://www.michael-neumann.net
 
@@ -13,28 +10,19 @@
 
 // ***** SETUP AREA : start *****
 
-/* fullMode = true  : consider all (even and odd) values when getting the next number
-   fullMode = false : take a shortcut and additionally divide by 2 when getting the next number */
-
-let fullMode = false;
+const fullMode = true;       // consider all (even and odd) numbers, or take a shortcut and divide by 2 when returning the next number in the sequence
+const treeSize = 120587;     // create branches for numbers from 1 to <treeSize>
+const angle    = 0.09081979; // angle to turn when drawing even / odd number
 
 // ***** SETUP AREA : end *****
 
-/* ***************************************
-
-   DO NOT CHANGE ANY CODE BELOW THIS LINE!
-
-   *************************************** */
-
-// returns the next number for the Collatz Conjecture
 function getNextNumber(number) {
 
-  if (number %2 == 0) { return number * 0.5; }
-  else                { if (fullMode == true) { return (number * 3 + 1) } else { return (number * 3 + 1) * 0.5; } }
+  if (number %2 === 0) { return number / 2; }
+  else                 { if (fullMode === true) { return (number * 3 + 1) } else { return (number * 3 + 1) / 2; } }
 
 }
 
-// returns true if the array is a subset of the candidate array
 function isSubsetOf(array, candidate) {
 
   if (array.length > candidate.length) { return false; }
@@ -45,35 +33,35 @@ function isSubsetOf(array, candidate) {
 
 }
 
-// creates the Collatz tree containing all branches up to a certain depth
 function createTree(depth) {
 
-  var tree = [];
+  // initalize with a tree for number 1
 
-  for (var number=1; number<=depth; number++) {
+  var tree = [[1]];
+
+  for (var number=2; number<=depth; number++) {
 
     var n = number;
     var branch = [n];
-    var hasPositionInTree = -1;
 
-    while (n > 1) {
-      n = getNextNumber(n);
-      branch.push(n);
-    }
+    while (n > 1) { branch.push(n = getNextNumber(n)); }
     branch.reverse();
 
     // optimize tree structure by extending existing trees
+    // if the branch already exists, update it with the newer (longer) branch
+    // if the branch is a subset of any existing branch, then there is nothing to do
+    // if the branch does not exist, add it to the tree
+
+    var addNewBranch = true;
+
     for (var i=0; i<tree.length; i++) {
-      // if any tree branch is a subset of the current branch, remember the tree's branch
-      if (isSubsetOf(tree[i], branch)) { hasPositionInTree = i; break; }
-      // if current branch is a subset of the any tree branch, then there is nothing to do
-      else if (isSubsetOf(branch, tree[i])) { hasPositionInTree = -2; break; }
+
+      if (isSubsetOf(tree[i], branch)) { tree[i] = branch; addNewBranch = false; break; }
+      else if (isSubsetOf(branch, tree[i])) { addNewBranch = false; break; }
+
     }
 
-    // if the branch already exists, update it with the newer (longer) version
-    if (hasPositionInTree > -1) { tree[i] = branch; }
-    // if the branch does not yet exist, create a new branch in the tree
-    else if (hasPositionInTree == -1) { tree.push(branch); }
+    if (addNewBranch) { tree.push(branch); }
 
   }
 
@@ -82,37 +70,42 @@ function createTree(depth) {
 }
 
 // setup and draw the final images on the canvas
-// code release on 14.3.2020 (Pi Day) - see below for more Pis
+// initial code release on 14.3.2020 (Pi Day) - see below for more Pis
+
 function setup() {
 
-  let tree  = createTree(120587);
-  let angle = 0.09081979;
-  let len   = PI;
-
-  let dimension = Math.pow(PI, PI) * Math.pow(PI, PI);
+  const tree  = createTree(treeSize);
+  const dimension = Math.pow(PI, PI) * Math.pow(PI, PI);
 
   createCanvas(dimension, dimension - (dimension / PI));
-  background(255);
+  strokeWeight(HALF_PI);
+  stroke(0, TWO_PI);
+  noFill();
+
+  var start;
+
+  if (fullMode === true) { start = createVector(width / PI + Math.pow(PI, PI) + Math.pow(PI, PI), height / 2); }
+  else                   { start = createVector(width / 2 + Math.pow(PI, PI) * PI, height - Math.pow(PI, PI) * 1.61803398875); }
 
   for (var i=0; i<tree.length; i++) {
 
-    resetMatrix();
+    var v = start.copy();
+    var z = createVector(0, -PI - PI / 1.61803398875);
 
-    // change origin depening on fullMode
-    if (fullMode == true) { translate(width / PI + Math.pow(PI, PI) + Math.pow(PI, PI), height / 2); }
-    else                  { translate(width / 2 + (Math.pow(PI, PI) * PI), height - Math.pow(PI, PI) - Math.pow(PI, PI)); }
+    beginShape();
+    vertex(v.x, v.y);
 
     for (var j=0; j<tree[i].length; j++) {
 
-      if (tree[i][j] %2 == 0) { rotate(angle); }
-      else                    { rotate(-angle); }
+      if (tree[i][j] %2 === 0) { z.rotate(angle); }
+      else                     { z.rotate(-angle); }
 
-      strokeWeight(PI/2);
-      stroke(0, 10);
-      line(0,0,0,-len);
-      translate(0,-len-(PI/2));
+      v.add(z);
+      vertex(v.x, v.y);
 
     }
+
+    endShape();
 
   }
 

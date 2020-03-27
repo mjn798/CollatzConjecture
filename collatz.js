@@ -11,6 +11,7 @@
 // ***** SETUP AREA : start *****
 
 const fullMode = true;       // consider all (even and odd) numbers, or take a shortcut and divide by 2 when returning the next number in the sequence
+const fastMode = false;      // render all possible branches (fast) or combine overlapping branches (slow)
 const treeSize = 120587;     // create branches for numbers from 1 to <treeSize>
 const angle    = 0.09081979; // angle to turn when drawing even / odd number
 
@@ -47,21 +48,30 @@ function createTree(depth) {
     while (n > 1) { branch.push(n = getNextNumber(n)); }
     branch.reverse();
 
-    // optimize tree structure by extending existing trees
-    // if the branch already exists, update it with the newer (longer) branch
-    // if the branch is a subset of any existing branch, then there is nothing to do
-    // if the branch does not exist, add it to the tree
+    if (fastMode === false) {
 
-    var addNewBranch = true;
+      // optimize tree structure by extending existing trees
+      // if the branch already exists, update it with the newer (longer) branch
+      // if the branch is a subset of any existing branch, then there is nothing to do
+      // if the branch does not exist, add it to the tree
 
-    for (var i=0; i<tree.length; i++) {
+      var addNewBranch = true;
 
-      if (isSubsetOf(tree[i], branch)) { tree[i] = branch; addNewBranch = false; break; }
-      else if (isSubsetOf(branch, tree[i])) { addNewBranch = false; break; }
+      for (var i=0; i<tree.length; i++) {
+
+        if (isSubsetOf(tree[i], branch)) { tree[i] = branch; addNewBranch = false; break; }
+        else if (isSubsetOf(branch, tree[i])) { addNewBranch = false; break; }
+
+      }
+
+      if (addNewBranch) { tree.push(branch); }
+
+    } else {
+
+      tree.push(branch);
 
     }
 
-    if (addNewBranch) { tree.push(branch); }
 
   }
 
